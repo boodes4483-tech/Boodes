@@ -47,7 +47,16 @@ jobs:
 
       - name: Build APK
         run: |
-          yes | buildozer android debug
+          set -o pipefail
+          (yes || true) | buildozer -v android debug 2>&1 | tee build.log
+
+      - name: Save Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Boodes-Build-Log
+          path: build.log
+          if-no-files-found: warn
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
