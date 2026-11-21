@@ -11,19 +11,6 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      
-name: Build Boodes APK
-
-on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-
-    steps:
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -38,19 +25,20 @@ jobs:
           sudo apt update
           sudo apt install -y \
             git zip unzip build-essential \
-            python3-pip python3-venv \
+            python3-pip \
             libffi-dev libssl-dev \
-            zlib1g-dev libncurses-dev \
+            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 \
             cmake libltdl-dev \
             autoconf automake libtool pkg-config
 
       - name: Install Buildozer
         run: |
           python3 -m pip install --user --upgrade pip setuptools wheel
-          python3 -m pip install --user buildozer "Cython==0.29.36"
+          python3 -m pip install --user buildozer "Cython==0.29.36" virtualenv
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           python3 -m pip show Cython
           cython --version
+          buildozer --version
 
       - name: Check project files
         run: |
@@ -59,50 +47,7 @@ jobs:
 
       - name: Build APK
         run: |
-          buildozer android debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Boodes-APK
-          path: bin/*.apk
-          if-no-files-found: error
-
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            git zip unzip build-essential \
-            python3-pip python3-venv \
-            libffi-dev libssl-dev \
-            zlib1g-dev libncurses-dev \
-            cmake libltdl-dev \
-            autoconf automake libtool pkg-config
-
-      - name: Prepare Python environment
-        run: |
-          python3 -m venv .venv
-          .venv/bin/python -m pip install --upgrade pip setuptools wheel
-          .venv/bin/python -m pip install buildozer "Cython==0.29.36"
-          .venv/bin/python -m pip show Cython
-          .venv/bin/cython --version
-          echo "$GITHUB_WORKSPACE/.venv/bin" >> $GITHUB_PATH
-
-      - name: Check project files
-        run: |
-          test -f main.py
-          test -f buildozer.spec
-
-      - name: Build APK
-        run: |
-          .venv/bin/buildozer android debug
+          yes | buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
