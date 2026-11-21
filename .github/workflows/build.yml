@@ -24,18 +24,17 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y \
-            ant \
             git zip unzip build-essential \
             python3-pip \
             libffi-dev libssl-dev \
-            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
             cmake libltdl-dev \
             autoconf automake libtool pkg-config
 
       - name: Install Buildozer
         run: |
-          python3 -m pip install --user --upgrade pip setuptools
-          python3 -m pip install --user --upgrade buildozer "Cython==0.29.34" "wheel==0.43.0" virtualenv
+          python3 -m pip install --user --upgrade pip setuptools wheel
+          python3 -m pip install --user buildozer "Cython==0.29.36" virtualenv
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           python3 -m pip show Cython
           cython --version
@@ -49,7 +48,7 @@ jobs:
       - name: Build APK
         run: |
           set -o pipefail
-          (yes || true) | buildozer -v android debug 2>&1 | tee build.log
+          buildozer -v android debug 2>&1 | tee build.log
 
       - name: Save Build Log
         if: always()
@@ -60,6 +59,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Boodes-APK
