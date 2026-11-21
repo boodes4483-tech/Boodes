@@ -34,7 +34,7 @@ jobs:
       - name: Install Buildozer
         run: |
           python3 -m pip install --user --upgrade pip setuptools wheel
-          python3 -m pip install --user buildozer "Cython==0.29.36" virtualenv
+          python3 -m pip install --user buildozer "Cython==0.29.34" virtualenv
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           python3 -m pip show Cython
           cython --version
