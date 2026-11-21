@@ -6,6 +6,7 @@ source.dir = .
 source.include_exts = py,ttf,png,jpg,kv,atlas
 version = 1.0.0
 requirements = python3,kivy,arabic-reshaper,python-bidi,openpyxl
+p4a.branch = master
 orientation = portrait
 fullscreen = 0
 android.api = 35
