@@ -35,7 +35,10 @@ jobs:
         run: |
           python3 -m venv .venv
           .venv/bin/python -m pip install --upgrade pip setuptools wheel
-          .venv/bin/pip install buildozer "Cython==0.29.36"
+          .venv/bin/python -m pip install buildozer "Cython==0.29.36"
+          .venv/bin/python -m pip show Cython
+          .venv/bin/cython --version
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> $GITHUB_PATH
 
       - name: Check project files
         run: |
