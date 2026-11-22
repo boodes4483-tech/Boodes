@@ -10,7 +10,7 @@ source.include_exts = py,ttf,png,jpg,kv,atlas
 
 version = 1.0.0
 
-requirements = python3,kivy,arabic-reshaper,python-bidi,openpyxl
+requirements = python3==3.11.9,hostpython3==3.11.9,kivy,arabic-reshaper,python-bidi,openpyxl
 
 p4a.branch = master
 
