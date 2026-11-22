@@ -19,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -43,17 +43,23 @@ jobs:
             cmake libltdl-dev \
             autoconf automake libtool pkg-config
 
-      - name: Verify Python version
+      - name: Verify environment
         run: |
           python --version
+          java -version
           python -c "import sys; assert sys.version_info[:2] == (3, 11)"
 
       - name: Set up build environment
         run: |
           python -m venv .venv
           source .venv/bin/activate
+
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install buildozer Cython==0.29.36 virtualenv
+          python -m pip install \
+            buildozer \
+            Cython==0.29.36 \
+            virtualenv
+
           buildozer --version
           cython --version
 
@@ -74,18 +80,65 @@ jobs:
           set -o pipefail
           buildozer -v android debug 2>&1 | tee build.log
 
-      - name: Save Build Log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Boodes-Build-Log
-          path: build.log
-          if-no-files-found: warn
+      - name: Verify APK archive
+        run: |
+          set -e
+
+          APK=$(find bin -maxdepth 1 -name "*.apk" | head -n 1)
+
+          if [ -z "$APK" ]; then
+            echo "ERROR: APK not found"
+            exit 1
+          fi
+
+          echo "APK: $APK"
+          ls -lh "$APK"
+          unzip -t "$APK"
+
+          sha256sum "$APK" | tee apk-sha256.txt
+
+      - name: Verify APK signature and package
+        run: |
+          set -e
+
+          APK=$(find bin -maxdepth 1 -name "*.apk" | head -n 1)
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          APKSIGNER=$(find "$SDK/build-tools" \
+            -type f -name apksigner | sort -V | tail -n 1)
+
+          AAPT=$(find "$SDK/build-tools" \
+            -type f -name aapt | sort -V | tail -n 1)
+
+          if [ -z "$APKSIGNER" ] || [ -z "$AAPT" ]; then
+            echo "ERROR: Android verification tools not found"
+            exit 1
+          fi
+
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+
+          "$AAPT" dump badging "$APK" | tee apk-info.txt
+
+          echo "APK signature and package checks completed."
 
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Boodes-APK
-          path: bin/*.apk
+          path: |
+            bin/*.apk
+            apk-sha256.txt
+            apk-info.txt
           if-no-files-found: error
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Boodes-Build-Logs
+          path: |
+            build.log
+            apk-sha256.txt
+            apk-info.txt
+          if-no-files-found: warn
