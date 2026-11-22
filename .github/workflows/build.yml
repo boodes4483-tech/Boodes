@@ -4,11 +4,16 @@ name: Build Boodes APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 180
 
     steps:
       - name: Checkout
@@ -22,40 +27,65 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt update
-          sudo apt install -y \
-            git zip unzip build-essential \
-            python3-pip \
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip \
+            build-essential \
+            python3 python3-pip python3-venv \
             libffi-dev libssl-dev \
             zlib1g-dev libncurses5-dev libncursesw5-dev \
             cmake libltdl-dev \
             autoconf automake libtool pkg-config
 
-      - name: Install Buildozer
+      - name: Set up Python environment
         run: |
-          python3 -m pip install --user --upgrade pip setuptools wheel
-          python3 -m pip install --user buildozer "Cython==0.29.36" virtualenv
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          python3 -m pip show Cython
-          cython --version
-          buildozer --version
+          python3 -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install buildozer Cython==0.29.36 virtualenv
 
       - name: Check project files
         run: |
           test -f main.py
           test -f buildozer.spec
+          test -f NotoNaskhArabic.ttf
 
-      - name: Build APK
+      - name: Clean old build
         run: |
-          set -o pipefail
-          buildozer -v android debug 2>&1 | tee build.log
+          . .venv/bin/activate
+          buildozer android clean || true
 
-      - name: Save Build Log
+      - name: Build APK with automatic retries
+        run: |
+          . .venv/bin/activate
+
+          for attempt in 1 2 3
+          do
+            echo "Starting build attempt $attempt of 3"
+
+            if buildozer -v android debug 2>&1 | tee "build-attempt-$attempt.log"
+            then
+              echo "APK build completed successfully"
+              exit 0
+            fi
+
+            echo "Build attempt $attempt failed"
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Waiting before retry..."
+              sleep 30
+            fi
+          done
+
+          echo "All build attempts failed"
+          exit 1
+
+      - name: Save Build Logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Boodes-Build-Log
-          path: build.log
+          name: Boodes-Build-Logs
+          path: build-attempt-*.log
           if-no-files-found: warn
 
       - name: Upload APK
